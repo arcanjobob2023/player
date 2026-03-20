@@ -36,9 +36,10 @@ function clampDb(value) {
 export default function WinampStyleMusicPlayer() {
   const audioRef = useRef(null);
   const audioContextRef = useRef(null);
-  const mediaSourceRef = useRef(null);
   const filtersRef = useRef([]);
   const initializedAudioGraphRef = useRef(false);
+  const tracksRef = useRef([]);
+  const backgroundImageRef = useRef(null);
 
   const [tracks, setTracks] = useState([]);
   const [sources, setSources] = useState([]);
@@ -73,6 +74,14 @@ export default function WinampStyleMusicPlayer() {
   });
 
   const currentTrack = tracks[currentIndex] ?? null;
+
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
+  useEffect(() => {
+    backgroundImageRef.current = backgroundImage;
+  }, [backgroundImage]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -112,7 +121,6 @@ export default function WinampStyleMusicPlayer() {
       filters[filters.length - 1].connect(context.destination);
 
       audioContextRef.current = context;
-      mediaSourceRef.current = source;
       filtersRef.current = filters;
       initializedAudioGraphRef.current = true;
     } catch (error) {
@@ -121,7 +129,6 @@ export default function WinampStyleMusicPlayer() {
 
     return () => {
       try {
-        mediaSourceRef.current?.disconnect();
         filtersRef.current.forEach((filter) => filter.disconnect());
         audioContextRef.current?.close();
       } catch {
@@ -132,7 +139,9 @@ export default function WinampStyleMusicPlayer() {
 
   useEffect(() => {
     filtersRef.current.forEach((filter, index) => {
-      filter.gain.value = clampDb(eqValues[index]);
+      if (filter) {
+        filter.gain.value = clampDb(eqValues[index]);
+      }
     });
   }, [eqValues]);
 
@@ -140,96 +149,128 @@ export default function WinampStyleMusicPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onLoaded = () => setDuration(audio.duration || 0);
-    const onTimeUpdate = () => setProgress(audio.currentTime || 0);
+    const onLoadedMetadata = () => {
+      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+    };
+
+    const onTimeUpdate = () => {
+      setProgress(Number.isFinite(audio.currentTime) ? audio.currentTime : 0);
+    };
+
     const onEnded = () => {
-      if (!tracks.length) return;
-      setCurrentIndex((prev) => (prev + 1) % tracks.length);
+      if (!tracksRef.current.length) return;
+
+      setCurrentIndex((prev) => {
+        const nextIndex = (prev + 1) % tracksRef.current.length;
+        return nextIndex;
+      });
+
       setProgress(0);
       setIsPlaying(true);
     };
 
-    audio.addEventListener("loadedmetadata", onLoaded);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
 
     return () => {
-      audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
     };
-  }, [tracks.length]);
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
+    if (!audio) return;
+
+    if (!currentTrack) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      setProgress(0);
+      setDuration(0);
+      return;
+    }
 
     audio.src = currentTrack.url;
     audio.load();
     setProgress(0);
+    setDuration(0);
+
+    if (isPlaying) {
+      const playCurrentTrack = async () => {
+        try {
+          if (audioContextRef.current?.state === "suspended") {
+            await audioContextRef.current.resume();
+          }
+          await audio.play();
+        } catch (error) {
+          console.error("Erro ao tocar faixa:", error);
+          setIsPlaying(false);
+        }
+      };
+
+      playCurrentTrack();
+    }
   }, [currentTrack]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
 
-    const tryPlay = async () => {
-      if (!isPlaying) {
-        audio.pause();
-        return;
-      }
-
+    const syncPlaybackState = async () => {
       try {
-        if (audioContextRef.current?.state === "suspended") {
-          await audioContextRef.current.resume();
+        if (isPlaying) {
+          if (audioContextRef.current?.state === "suspended") {
+            await audioContextRef.current.resume();
+          }
+          await audio.play();
+        } else {
+          audio.pause();
         }
-        await audio.play();
       } catch (error) {
-        console.error("Erro ao tocar faixa:", error);
+        console.error("Erro ao sincronizar reprodução:", error);
         setIsPlaying(false);
       }
     };
 
-    const onCanPlay = () => {
-      tryPlay();
-    };
-
-    if (audio.readyState >= 3) {
-      tryPlay();
-    } else {
-      audio.addEventListener("canplay", onCanPlay, { once: true });
-    }
-
-    return () => {
-      audio.removeEventListener("canplay", onCanPlay);
-    };
-  }, [currentTrack, isPlaying]);
+    syncPlaybackState();
+  }, [isPlaying, currentTrack]);
 
   useEffect(() => {
     return () => {
-      tracks.forEach((track) => URL.revokeObjectURL(track.url));
-    };
-  }, [tracks]);
+      tracksRef.current.forEach((track) => {
+        if (track?.url) {
+          URL.revokeObjectURL(track.url);
+        }
+      });
 
-  useEffect(() => {
-    return () => {
-      if (backgroundImage) {
-        URL.revokeObjectURL(backgroundImage);
+      if (backgroundImageRef.current) {
+        URL.revokeObjectURL(backgroundImageRef.current);
       }
     };
-  }, [backgroundImage]);
+  }, []);
 
   const statusText = useMemo(() => {
     if (!tracks.length) return "STOP";
     return isPlaying ? "PLAY" : "PAUSE";
   }, [tracks.length, isPlaying]);
 
-  function deduplicateTracks(nextFiles) {
-    const existing = new Set(tracks.map((track) => `${track.name}-${track.size}`));
+  function deduplicateTracks(nextFiles, existingTracks) {
+    const existing = new Set(existingTracks.map((track) => `${track.name}-${track.size}`));
     const prepared = [];
 
     for (const file of nextFiles) {
       const key = `${file.name}-${file.size}`;
+
       if (!existing.has(key) && isSupportedAudio(file.name)) {
         existing.add(key);
         prepared.push({
@@ -253,14 +294,22 @@ export default function WinampStyleMusicPlayer() {
       isSupportedAudio(file.name),
     );
 
-    const prepared = deduplicateTracks(incoming).map((track) => ({
-      ...track,
-      source: sourceLabel || track.source,
-    }));
+    if (!incoming.length) return;
 
-    if (!prepared.length) return;
+    setTracks((prev) => {
+      const prepared = deduplicateTracks(incoming, prev).map((track) => ({
+        ...track,
+        source: sourceLabel || track.source,
+      }));
 
-    setTracks((prev) => [...prev, ...prepared]);
+      if (!prepared.length) return prev;
+
+      if (prev.length === 0) {
+        setCurrentIndex(0);
+      }
+
+      return [...prev, ...prepared];
+    });
 
     if (sourceLabel) {
       setSources((prev) => (prev.includes(sourceLabel) ? prev : [...prev, sourceLabel]));
@@ -294,7 +343,7 @@ export default function WinampStyleMusicPlayer() {
         await audioContextRef.current.resume();
       }
 
-      if (!currentTrack) {
+      if (!currentTrack && tracks.length > 0) {
         setCurrentIndex(0);
         setIsPlaying(true);
         return;
@@ -304,6 +353,12 @@ export default function WinampStyleMusicPlayer() {
         audio.pause();
         setIsPlaying(false);
       } else {
+        if (!audio.src && currentTrack?.url) {
+          audio.src = currentTrack.url;
+          audio.load();
+        }
+
+        await audio.play();
         setIsPlaying(true);
       }
     } catch (error) {
@@ -329,40 +384,51 @@ export default function WinampStyleMusicPlayer() {
   function handleSeek(event) {
     const value = Number(event.target.value);
     setProgress(value);
+
     if (audioRef.current) {
       audioRef.current.currentTime = value;
     }
   }
 
-  async function handleSelectTrack(index) {
+  function handleSelectTrack(index) {
     setCurrentIndex(index);
     setProgress(0);
     setIsPlaying(true);
-
-    try {
-      if (audioContextRef.current?.state === "suspended") {
-        await audioContextRef.current.resume();
-      }
-    } catch (error) {
-      console.error("Erro ao preparar áudio:", error);
-    }
   }
 
   function removeTrack(trackId) {
     setTracks((prev) => {
       const indexToRemove = prev.findIndex((track) => track.id === trackId);
-      const target = prev[indexToRemove];
+      if (indexToRemove === -1) return prev;
 
-      if (target?.url) URL.revokeObjectURL(target.url);
+      const trackToRemove = prev[indexToRemove];
+      if (trackToRemove?.url) {
+        URL.revokeObjectURL(trackToRemove.url);
+      }
 
       const next = prev.filter((track) => track.id !== trackId);
 
       if (!next.length) {
+        const audio = audioRef.current;
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
         setCurrentIndex(0);
         setIsPlaying(false);
         setProgress(0);
         setDuration(0);
-      } else if (indexToRemove < currentIndex || currentIndex >= next.length) {
+        return [];
+      }
+
+      if (indexToRemove === currentIndex) {
+        const nextIndex = indexToRemove >= next.length ? next.length - 1 : indexToRemove;
+        setCurrentIndex(nextIndex);
+        setProgress(0);
+        setIsPlaying(true);
+      } else if (indexToRemove < currentIndex) {
         setCurrentIndex((curr) => Math.max(0, curr - 1));
       }
 
@@ -371,7 +437,19 @@ export default function WinampStyleMusicPlayer() {
   }
 
   function clearAll() {
-    tracks.forEach((track) => URL.revokeObjectURL(track.url));
+    tracksRef.current.forEach((track) => {
+      if (track?.url) {
+        URL.revokeObjectURL(track.url);
+      }
+    });
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    }
+
     setTracks([]);
     setSources([]);
     setCurrentIndex(0);
@@ -388,8 +466,8 @@ export default function WinampStyleMusicPlayer() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (backgroundImage) {
-      URL.revokeObjectURL(backgroundImage);
+    if (backgroundImageRef.current) {
+      URL.revokeObjectURL(backgroundImageRef.current);
     }
 
     const imageUrl = URL.createObjectURL(file);
@@ -399,9 +477,10 @@ export default function WinampStyleMusicPlayer() {
   }
 
   function removeBackgroundImage() {
-    if (backgroundImage) {
-      URL.revokeObjectURL(backgroundImage);
+    if (backgroundImageRef.current) {
+      URL.revokeObjectURL(backgroundImageRef.current);
     }
+
     setBackgroundImage(null);
     setUseImageBackground(false);
     setBgInputKey((prev) => prev + 1);
@@ -692,6 +771,7 @@ export default function WinampStyleMusicPlayer() {
                   type="range"
                   min={0}
                   max={duration || 0}
+                  step={0.01}
                   value={Math.min(progress, duration || 0)}
                   onChange={handleSeek}
                   style={{ width: "100%", accentColor: theme.accent }}
@@ -1004,7 +1084,7 @@ export default function WinampStyleMusicPlayer() {
               </label>
             </div>
 
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
               <button
                 onClick={() => setUseImageBackground((prev) => (!prev ? !!backgroundImage : false))}
                 disabled={!backgroundImage}
@@ -1058,8 +1138,8 @@ export default function WinampStyleMusicPlayer() {
         )}
 
         <div style={{ marginTop: "8px", fontSize: "10px", color: "#dbeafe", opacity: 0.9 }}>
-          Fontes: {sources.length ? sources.join(", ") : "nenhuma"} • Formatos: MP3, WAV,
-          OGG, M4A e FLAC.
+          Fontes: {sources.length ? sources.join(", ") : "nenhuma"} • Formatos: MP3, WAV, OGG,
+          M4A e FLAC.
         </div>
       </div>
     </div>
