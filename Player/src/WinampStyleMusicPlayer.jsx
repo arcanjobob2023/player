@@ -62,7 +62,7 @@ export default function WinampStyleMusicPlayer() {
   const [theme, setTheme] = useState({
     buttonTop: "#f5f5f5",
     buttonBottom: "#bfc4ca",
-    buttonBorder: "#4b5563",
+    buttonBorder: "#dc2626",
     accent: "#60a5fa",
     displayText: "#b7ff7a",
     eqTop: "#60a5fa",
@@ -160,11 +160,7 @@ export default function WinampStyleMusicPlayer() {
     const onEnded = () => {
       if (!tracksRef.current.length) return;
 
-      setCurrentIndex((prev) => {
-        const nextIndex = (prev + 1) % tracksRef.current.length;
-        return nextIndex;
-      });
-
+      setCurrentIndex((prev) => (prev + 1) % tracksRef.current.length);
       setProgress(0);
       setIsPlaying(true);
     };
@@ -486,51 +482,67 @@ export default function WinampStyleMusicPlayer() {
     setBgInputKey((prev) => prev + 1);
   }
 
+  const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false;
+
   const buttonStyle = {
-    width: "28px",
-    height: "24px",
-    borderRadius: "4px",
-    border: `1px solid ${theme.buttonBorder}`,
+    width: isMobile ? "52px" : "34px",
+    height: isMobile ? "46px" : "28px",
+    borderRadius: "10px",
+    border: `2px solid ${theme.buttonBorder}`,
     background: `linear-gradient(180deg, ${theme.buttonTop} 0%, ${theme.buttonBottom} 100%)`,
     color: "#111827",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
     cursor: "pointer",
+    padding: 0,
+    flexShrink: 0,
   };
 
   const upperPanelBackground =
     useImageBackground && backgroundImage
-      ? `linear-gradient(rgba(15, 23, 42, 0.28), rgba(15, 23, 42, 0.28)), url(${backgroundImage}) center/cover no-repeat`
+      ? `linear-gradient(rgba(15, 23, 42, 0.32), rgba(15, 23, 42, 0.32)), url(${backgroundImage}) center/cover no-repeat`
       : `linear-gradient(180deg, ${theme.panelTop} 0%, ${theme.panelBottom} 100%)`;
 
   const eqPanelBackground =
     useImageBackground && backgroundImage
-      ? `linear-gradient(rgba(148, 163, 184, 0.42), rgba(100, 116, 139, 0.42)), url(${backgroundImage}) center/cover no-repeat`
+      ? `linear-gradient(rgba(148, 163, 184, 0.48), rgba(100, 116, 139, 0.48)), url(${backgroundImage}) center/cover no-repeat`
       : `linear-gradient(180deg, ${theme.eqPanelTop} 0%, ${theme.eqPanelBottom} 100%)`;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#020617", padding: "24px", color: "#fff" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        background: "#020617",
+        padding: 0,
+        margin: 0,
+        color: "#fff",
+      }}
+    >
       <audio ref={audioRef} preload="metadata" />
 
       <div
         style={{
-          width: "430px",
-          margin: "0 auto",
-          padding: "10px",
-          borderRadius: "8px",
+          width: "100%",
+          maxWidth: "100%",
+          minHeight: "100vh",
+          margin: 0,
+          padding: isMobile ? "8px" : "16px",
+          borderRadius: 0,
           background: "linear-gradient(180deg, #cad1db 0%, #8d9aad 38%, #6f7a8d 100%)",
-          border: "1px solid #4a5568",
-          boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+          border: "none",
+          boxShadow: "none",
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
             border: "1px solid #4f5f73",
             background: upperPanelBackground,
-            padding: "8px",
-            borderRadius: "4px",
+            padding: isMobile ? "8px" : "10px",
+            borderRadius: "8px",
           }}
         >
           <div
@@ -538,7 +550,7 @@ export default function WinampStyleMusicPlayer() {
               display: "flex",
               justifyContent: "center",
               color: "#dbeafe",
-              fontSize: "11px",
+              fontSize: isMobile ? "11px" : "12px",
               fontWeight: 700,
               letterSpacing: "1px",
             }}
@@ -551,14 +563,20 @@ export default function WinampStyleMusicPlayer() {
               marginTop: "8px",
               border: "1px solid #0f172a",
               background: "linear-gradient(180deg, #020617 0%, #000814 100%)",
-              borderRadius: "2px",
-              padding: "10px",
+              borderRadius: "4px",
+              padding: isMobile ? "10px" : "12px",
               fontFamily: "monospace",
               color: theme.displayText,
-              minHeight: "82px",
+              minHeight: isMobile ? "110px" : "90px",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: isMobile ? "12px" : "11px",
+              }}
+            >
               <span>{statusText}</span>
               <span>{tracks.length ? String(currentIndex + 1).padStart(2, "0") : "00"}</span>
             </div>
@@ -567,9 +585,10 @@ export default function WinampStyleMusicPlayer() {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                marginTop: "6px",
-                fontSize: "30px",
+                marginTop: "8px",
+                fontSize: isMobile ? "clamp(34px, 10vw, 56px)" : "30px",
                 letterSpacing: "2px",
+                gap: "10px",
               }}
             >
               <span>{formatTime(progress)}</span>
@@ -578,8 +597,8 @@ export default function WinampStyleMusicPlayer() {
 
             <div
               style={{
-                marginTop: "6px",
-                fontSize: "11px",
+                marginTop: "8px",
+                fontSize: isMobile ? "11px" : "11px",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -590,8 +609,8 @@ export default function WinampStyleMusicPlayer() {
 
             <div
               style={{
-                marginTop: "2px",
-                fontSize: "10px",
+                marginTop: "4px",
+                fontSize: isMobile ? "10px" : "10px",
                 color: "#7dd3fc",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -608,9 +627,9 @@ export default function WinampStyleMusicPlayer() {
                 marginTop: "8px",
                 border: "1px solid #38485d",
                 background: "linear-gradient(180deg, #15253d 0%, #0f1a2e 100%)",
-                borderRadius: "3px",
+                borderRadius: "6px",
                 padding: "6px",
-                maxHeight: "180px",
+                maxHeight: "220px",
                 overflow: "auto",
               }}
             >
@@ -634,11 +653,11 @@ export default function WinampStyleMusicPlayer() {
                       key={track.id}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "28px 1fr 52px",
+                        gridTemplateColumns: "40px 1fr 54px",
                         gap: "6px",
-                        padding: "4px 6px",
+                        padding: "6px",
                         marginBottom: "4px",
-                        borderRadius: "2px",
+                        borderRadius: "4px",
                         background: active ? "rgba(34,197,94,0.15)" : "rgba(2,6,23,0.45)",
                         border: active ? "1px solid #22c55e" : "1px solid #243244",
                         color: active ? "#bbf7d0" : "#dbeafe",
@@ -653,6 +672,7 @@ export default function WinampStyleMusicPlayer() {
                           border: "none",
                           color: "inherit",
                           cursor: "pointer",
+                          minHeight: "32px",
                         }}
                       >
                         {String(index + 1).padStart(2, "0")}
@@ -669,6 +689,7 @@ export default function WinampStyleMusicPlayer() {
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
+                          minHeight: "32px",
                         }}
                       >
                         {track.title}
@@ -680,10 +701,11 @@ export default function WinampStyleMusicPlayer() {
                           border: "1px solid #64748b",
                           background: "linear-gradient(180deg, #e5e7eb 0%, #b6bdc7 100%)",
                           color: "#111827",
-                          borderRadius: "2px",
+                          borderRadius: "4px",
                           fontSize: "10px",
                           cursor: "pointer",
-                          padding: "2px 4px",
+                          padding: "6px 4px",
+                          minHeight: "32px",
                         }}
                       >
                         Del
@@ -701,32 +723,48 @@ export default function WinampStyleMusicPlayer() {
 
           <div
             style={{
-              marginTop: "8px",
+              marginTop: "10px",
               display: "grid",
-              gridTemplateColumns: "1fr auto",
-              gap: "8px",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+              gap: "12px",
               alignItems: "start",
             }}
           >
             <div>
-              <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  justifyContent: isMobile ? "center" : "flex-start",
+                }}
+              >
                 <button onClick={handlePrev} style={buttonStyle}>
-                  <SkipBack size={14} />
+                  <SkipBack size={isMobile ? 22 : 16} />
                 </button>
 
                 <button
                   onClick={togglePlay}
-                  style={{ ...buttonStyle, width: "34px", height: "26px" }}
+                  style={{
+                    ...buttonStyle,
+                    width: isMobile ? "58px" : "42px",
+                    height: isMobile ? "50px" : "32px",
+                  }}
                 >
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} style={{ marginLeft: "1px" }} />}
+                  {isPlaying ? (
+                    <Pause size={isMobile ? 24 : 16} />
+                  ) : (
+                    <Play size={isMobile ? 24 : 16} style={{ marginLeft: "2px" }} />
+                  )}
                 </button>
 
                 <button onClick={handleNext} style={buttonStyle}>
-                  <SkipForward size={14} />
+                  <SkipForward size={isMobile ? 22 : 16} />
                 </button>
 
                 <label style={buttonStyle} title="Adicionar arquivos">
-                  <Upload size={14} />
+                  <Upload size={isMobile ? 22 : 16} />
                   <input
                     key={fileInputKey}
                     type="file"
@@ -738,7 +776,7 @@ export default function WinampStyleMusicPlayer() {
                 </label>
 
                 <label style={buttonStyle} title="Adicionar pasta">
-                  <FolderOpen size={14} />
+                  <FolderOpen size={isMobile ? 22 : 16} />
                   <input
                     key={directoryInputKey}
                     type="file"
@@ -751,22 +789,22 @@ export default function WinampStyleMusicPlayer() {
 
                 <button
                   onClick={() => setShowPlaylist((prev) => !prev)}
-                  style={{ ...buttonStyle, width: "40px" }}
+                  style={{ ...buttonStyle, width: isMobile ? "58px" : "46px" }}
                   title="Mostrar playlist"
                 >
-                  <ListMusic size={14} />
+                  <ListMusic size={isMobile ? 22 : 16} />
                 </button>
 
                 <button
                   onClick={() => setShowTheme((prev) => !prev)}
-                  style={{ ...buttonStyle, width: "40px" }}
+                  style={{ ...buttonStyle, width: isMobile ? "58px" : "46px" }}
                   title="Mostrar tema"
                 >
-                  <Palette size={14} />
+                  <Palette size={isMobile ? 22 : 16} />
                 </button>
               </div>
 
-              <div style={{ marginTop: "8px" }}>
+              <div style={{ marginTop: "12px" }}>
                 <input
                   type="range"
                   min={0}
@@ -774,7 +812,11 @@ export default function WinampStyleMusicPlayer() {
                   step={0.01}
                   value={Math.min(progress, duration || 0)}
                   onChange={handleSeek}
-                  style={{ width: "100%", accentColor: theme.accent }}
+                  style={{
+                    width: "100%",
+                    accentColor: theme.accent,
+                    height: isMobile ? "34px" : "20px",
+                  }}
                 />
               </div>
             </div>
@@ -783,17 +825,21 @@ export default function WinampStyleMusicPlayer() {
               style={{
                 border: "1px solid #4c5c70",
                 background: "linear-gradient(180deg, #9ea8b5 0%, #7f8b9b 100%)",
-                padding: "6px",
-                borderRadius: "3px",
-                minWidth: "54px",
+                padding: "8px",
+                borderRadius: "6px",
+                width: isMobile ? "100%" : "74px",
+                display: "flex",
+                flexDirection: isMobile ? "column" : "column",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <div
                 style={{
-                  fontSize: "9px",
+                  fontSize: "10px",
                   fontWeight: 700,
                   color: "#0f172a",
-                  marginBottom: "4px",
+                  marginBottom: isMobile ? "8px" : "4px",
                 }}
               >
                 VOL
@@ -806,13 +852,21 @@ export default function WinampStyleMusicPlayer() {
                 step={0.01}
                 value={volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                style={{
-                  width: "52px",
-                  transform: "rotate(-90deg)",
-                  marginTop: "24px",
-                  marginBottom: "24px",
-                  accentColor: theme.accent,
-                }}
+                style={
+                  isMobile
+                    ? {
+                        width: "100%",
+                        accentColor: theme.accent,
+                        height: "32px",
+                      }
+                    : {
+                        width: "52px",
+                        transform: "rotate(-90deg)",
+                        marginTop: "24px",
+                        marginBottom: "24px",
+                        accentColor: theme.accent,
+                      }
+                }
               />
             </div>
           </div>
@@ -820,11 +874,11 @@ export default function WinampStyleMusicPlayer() {
 
         <div
           style={{
-            marginTop: "8px",
+            marginTop: "10px",
             border: "1px solid #59677a",
-            borderRadius: "4px",
+            borderRadius: "8px",
             background: eqPanelBackground,
-            padding: "8px 10px 10px",
+            padding: isMobile ? "10px 8px 12px" : "8px 10px 10px",
           }}
         >
           <div
@@ -832,12 +886,13 @@ export default function WinampStyleMusicPlayer() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "6px",
+              marginBottom: "8px",
+              gap: "8px",
             }}
           >
             <div
               style={{
-                fontSize: "10px",
+                fontSize: isMobile ? "11px" : "10px",
                 fontWeight: 700,
                 color: "#0f172a",
                 letterSpacing: "1px",
@@ -851,9 +906,9 @@ export default function WinampStyleMusicPlayer() {
               style={{
                 border: "1px solid #5b6572",
                 background: "linear-gradient(180deg, #eceff3 0%, #c3c8cf 100%)",
-                borderRadius: "3px",
+                borderRadius: "4px",
                 fontSize: "10px",
-                padding: "2px 6px",
+                padding: "5px 8px",
                 cursor: "pointer",
                 color: "#111827",
               }}
@@ -862,7 +917,16 @@ export default function WinampStyleMusicPlayer() {
             </button>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "6px", alignItems: "end" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: isMobile ? "4px" : "6px",
+              alignItems: "end",
+              overflowX: "auto",
+              paddingBottom: "4px",
+            }}
+          >
             {EQ_BANDS.map((band, index) => (
               <div
                 key={band}
@@ -871,7 +935,8 @@ export default function WinampStyleMusicPlayer() {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: "4px",
-                  width: "100%",
+                  minWidth: isMobile ? "38px" : "32px",
+                  flex: 1,
                 }}
               >
                 <div style={{ fontSize: "9px", color: "#0f172a", fontWeight: 700 }}>
@@ -893,8 +958,8 @@ export default function WinampStyleMusicPlayer() {
                   style={{
                     writingMode: "vertical-lr",
                     direction: "rtl",
-                    height: "90px",
-                    width: "18px",
+                    height: isMobile ? "120px" : "95px",
+                    width: isMobile ? "24px" : "18px",
                     accentColor: theme.eqBottom,
                   }}
                 />
@@ -910,11 +975,11 @@ export default function WinampStyleMusicPlayer() {
         {showTheme && (
           <div
             style={{
-              marginTop: "8px",
+              marginTop: "10px",
               border: "1px solid #59677a",
-              borderRadius: "4px",
+              borderRadius: "8px",
               background: "linear-gradient(180deg, #9da8b6 0%, #737f90 100%)",
-              padding: "8px 10px 10px",
+              padding: "10px",
             }}
           >
             <div
@@ -929,7 +994,13 @@ export default function WinampStyleMusicPlayer() {
               THEME
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
+                gap: "8px",
+              }}
+            >
               <label style={{ fontSize: "10px", color: "#0f172a", fontWeight: 700, gridColumn: "1 / -1" }}>
                 Imagem de fundo
                 <input
@@ -967,7 +1038,7 @@ export default function WinampStyleMusicPlayer() {
                   type="color"
                   value={theme.buttonTop}
                   onChange={(e) => setTheme((prev) => ({ ...prev, buttonTop: e.target.value }))}
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -979,7 +1050,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, buttonBottom: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -991,7 +1062,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, buttonBorder: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1001,7 +1072,7 @@ export default function WinampStyleMusicPlayer() {
                   type="color"
                   value={theme.accent}
                   onChange={(e) => setTheme((prev) => ({ ...prev, accent: e.target.value }))}
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1011,7 +1082,7 @@ export default function WinampStyleMusicPlayer() {
                   type="color"
                   value={theme.panelTop}
                   onChange={(e) => setTheme((prev) => ({ ...prev, panelTop: e.target.value }))}
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1023,7 +1094,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, panelBottom: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1035,7 +1106,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, displayText: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1045,7 +1116,7 @@ export default function WinampStyleMusicPlayer() {
                   type="color"
                   value={theme.eqTop}
                   onChange={(e) => setTheme((prev) => ({ ...prev, eqTop: e.target.value }))}
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1055,7 +1126,7 @@ export default function WinampStyleMusicPlayer() {
                   type="color"
                   value={theme.eqBottom}
                   onChange={(e) => setTheme((prev) => ({ ...prev, eqBottom: e.target.value }))}
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1067,7 +1138,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, eqPanelTop: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
 
@@ -1079,7 +1150,7 @@ export default function WinampStyleMusicPlayer() {
                   onChange={(e) =>
                     setTheme((prev) => ({ ...prev, eqPanelBottom: e.target.value }))
                   }
-                  style={{ width: "100%", height: "24px", marginTop: "4px" }}
+                  style={{ width: "100%", height: "30px", marginTop: "4px" }}
                 />
               </label>
             </div>
@@ -1091,9 +1162,9 @@ export default function WinampStyleMusicPlayer() {
                 style={{
                   border: "1px solid #5b6572",
                   background: "linear-gradient(180deg, #eceff3 0%, #c3c8cf 100%)",
-                  borderRadius: "3px",
+                  borderRadius: "4px",
                   fontSize: "10px",
-                  padding: "4px 8px",
+                  padding: "6px 8px",
                   cursor: backgroundImage ? "pointer" : "not-allowed",
                   color: "#111827",
                   opacity: backgroundImage ? 1 : 0.6,
@@ -1108,9 +1179,9 @@ export default function WinampStyleMusicPlayer() {
                 style={{
                   border: "1px solid #5b6572",
                   background: "linear-gradient(180deg, #eceff3 0%, #c3c8cf 100%)",
-                  borderRadius: "3px",
+                  borderRadius: "4px",
                   fontSize: "10px",
-                  padding: "4px 8px",
+                  padding: "6px 8px",
                   cursor: backgroundImage ? "pointer" : "not-allowed",
                   color: "#111827",
                   opacity: backgroundImage ? 1 : 0.6,
@@ -1124,9 +1195,9 @@ export default function WinampStyleMusicPlayer() {
                 style={{
                   border: "1px solid #5b6572",
                   background: "linear-gradient(180deg, #eceff3 0%, #c3c8cf 100%)",
-                  borderRadius: "3px",
+                  borderRadius: "4px",
                   fontSize: "10px",
-                  padding: "4px 8px",
+                  padding: "6px 8px",
                   cursor: "pointer",
                   color: "#111827",
                 }}
@@ -1137,7 +1208,15 @@ export default function WinampStyleMusicPlayer() {
           </div>
         )}
 
-        <div style={{ marginTop: "8px", fontSize: "10px", color: "#dbeafe", opacity: 0.9 }}>
+        <div
+          style={{
+            marginTop: "10px",
+            fontSize: isMobile ? "11px" : "10px",
+            color: "#dbeafe",
+            opacity: 0.95,
+            paddingBottom: "8px",
+          }}
+        >
           Fontes: {sources.length ? sources.join(", ") : "nenhuma"} • Formatos: MP3, WAV, OGG,
           M4A e FLAC.
         </div>
